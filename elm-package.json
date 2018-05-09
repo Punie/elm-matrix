@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "summary": "Simple linear algebra library using flat-arrays",
     "repository": "https://github.com/Punie/elm-matrix.git",
     "license": "BSD-3",
@@ -7,7 +7,7 @@
         "src"
     ],
     "exposed-modules": [
-      "Matrix"
+        "Matrix"
     ],
     "dependencies": {
         "Skinney/elm-array-exploration": "2.0.5 <= v < 3.0.0",

@@ -1,9 +1,11 @@
 module Matrix.Tests exposing (..)
 
 import Expect exposing (equal, equalLists)
-import Fuzz exposing (Fuzzer, float, int, intRange, tuple, tuple3)
-import Test exposing (Test, describe, fuzz, fuzz2, fuzz3, test, todo)
+import Fuzz exposing (Fuzzer, custom, float, int, intRange, tuple, tuple3)
 import Matrix
+import Random.Pcg as Random
+import Shrink
+import Test exposing (Test, describe, fuzz, fuzz2, fuzz3, test, todo)
 
 
 int : Fuzzer Int
@@ -14,6 +16,20 @@ int =
 size : Fuzzer ( Int, Int )
 size =
     tuple ( intRange 0 100, intRange 0 100 )
+
+
+matrix : Fuzzer (Matrix.Matrix Int)
+matrix =
+    let
+        generator =
+            Random.map3 Matrix.repeat (Random.int 0 100) (Random.int 0 100) (Random.int -100 100)
+
+        shrinker matrix =
+            Shrink.map Matrix.repeat (Shrink.int (Matrix.height matrix))
+                |> Shrink.andMap (Shrink.int (Matrix.width matrix))
+                |> Shrink.andMap (Shrink.int 0)
+    in
+        custom generator shrinker
 
 
 repeat : Test
@@ -58,6 +74,70 @@ identity =
                 Matrix.identity n
                     |> Matrix.size
                     |> equal ( n, n )
+        ]
+
+
+fromList : Test
+fromList =
+    describe "From List"
+        [ test "empty list" <|
+            \() ->
+                Matrix.fromList 0 0 []
+                    |> equal (Just Matrix.empty)
+        , test "wrong dimensions with empty list" <|
+            \() ->
+                Matrix.fromList 1 2 []
+                    |> equal Nothing
+        , test "non-empty list with perfect dimensions" <|
+            \() ->
+                Matrix.fromList 2 3 [ 1, 1, 1, 1, 1, 1 ]
+                    |> equal (Just <| Matrix.repeat 2 3 1)
+        , test "non-empty list larger than needed" <|
+            \() ->
+                Matrix.fromList 2 2 [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
+                    |> equal (Just <| Matrix.repeat 2 2 1)
+        , test "toList >> fromList" <|
+            \() ->
+                Matrix.identity 3
+                    |> Matrix.toList
+                    |> Matrix.fromList 3 3
+                    |> equal (Just <| Matrix.identity 3)
+        ]
+
+
+fromLists : Test
+fromLists =
+    describe "From Lists"
+        [ test "empty list" <|
+            \() ->
+                Matrix.fromLists []
+                    |> equal (Just Matrix.empty)
+        , test "list of one empty list" <|
+            \() ->
+                Matrix.fromLists [ [] ]
+                    |> equal (Just Matrix.empty)
+        , test "list of empty lists" <|
+            \() ->
+                Matrix.fromLists [ [], [], [] ]
+                    |> equal (Just Matrix.empty)
+        , test "list of impossibly unmatched lists" <|
+            \() ->
+                Matrix.fromLists [ [ 1, 2 ], [ 1 ], [ 1, 2 ] ]
+                    |> equal Nothing
+        , test "list of possibly unmatched lists" <|
+            \() ->
+                Matrix.fromLists [ [ 1, 2 ], [ 1, 2, 3 ], [ 1, 2 ] ]
+                    |> equal (Just <| Matrix.initialize 3 2 (\( i, j ) -> j))
+        , test "toLists >> fromLists" <|
+            \() ->
+                let
+                    m =
+                        Matrix.initialize 7 12 (\( i, j ) -> i * 2 + 3 * j - 1)
+                in
+                    m
+                        |> Matrix.toLists
+                        |> Matrix.fromLists
+                        |> equal (Just m)
         ]
 
 

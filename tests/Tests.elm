@@ -10,6 +10,8 @@ all =
         [ MT.repeat
         , MT.initialize
         , MT.identity
+        , MT.fromList
+        , MT.fromLists
         , MT.map
         , MT.map2
         , MT.transpose

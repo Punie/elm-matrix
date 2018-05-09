@@ -5,6 +5,8 @@ module Matrix
         , repeat
         , initialize
         , identity
+        , fromList
+        , fromLists
         , height
         , width
         , size
@@ -28,7 +30,7 @@ module Matrix
 
 # Creating matrices
 
-@docs empty, repeat, initialize, identity
+@docs empty, repeat, initialize, identity, fromList, fromLists
 
 
 # Get matrix dimensions
@@ -158,6 +160,51 @@ get i j (Matrix { ncols, mvect }) =
     Array.get (encode ncols ( i, j )) mvect
 
 
+{-| Create a matrix from a list given the desired size.
+If the list has a length inferior to `n * m`, returns `Nothing`.
+
+    fromList 2 2 [1,1,1,1,1] == Just <| repeat 2 2 1
+    fromList 3 3 [0,1,2] == Nothing
+
+-}
+fromList : Int -> Int -> List a -> Maybe (Matrix a)
+fromList n m list =
+    if List.length list < n * m then
+        Nothing
+    else
+        Just <| initialize n m (\i -> unsafeGetFromList (encode m i) list)
+
+
+{-| Create a matrix from a list of lists.
+If any inner list is shorter than the first, returns `Nothing`.
+Otherwise, the length of the first list determines the width of the matrix.
+
+    fromLists [] == Just empty
+    fromLists [[]] == Just empty
+    fromLists [ [1,2,3], [1,2] ] == Nothing
+    fromLists [ [1,0], [0, 1] ] == Just <| identity 2
+
+-}
+fromLists : List (List a) -> Maybe (Matrix a)
+fromLists list =
+    case list of
+        [] ->
+            Just empty
+
+        xs :: xss ->
+            let
+                n =
+                    1 + List.length xss
+
+                m =
+                    List.length xs
+            in
+                if m == 0 then
+                    Just empty
+                else
+                    fromList n m <| List.concat <| xs :: List.map (List.take m) xss
+
+
 {-| Apply a function on every element of a matrix
 -}
 map : (a -> b) -> Matrix a -> Matrix b
@@ -266,6 +313,32 @@ decode ncols index =
             rem index ncols
     in
         ( q + 1, r + 1 )
+
+
+itemAt : Int -> List a -> Maybe a
+itemAt index list =
+    if index < 0 then
+        Nothing
+    else
+        case list of
+            [] ->
+                Nothing
+
+            x :: xs ->
+                if index == 0 then
+                    Just x
+                else
+                    itemAt (index - 1) xs
+
+
+unsafeGetFromList : Int -> List a -> a
+unsafeGetFromList index list =
+    case itemAt index list of
+        Just value ->
+            value
+
+        Nothing ->
+            Debug.crash ""
 
 
 unsafeGet : Int -> Int -> Matrix a -> a
