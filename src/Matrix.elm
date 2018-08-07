@@ -338,7 +338,7 @@ unsafeGetFromList index list =
             value
 
         Nothing ->
-            Debug.crash ""
+            unsafeGetFromList index list
 
 
 unsafeGet : Int -> Int -> Matrix a -> a
@@ -348,7 +348,7 @@ unsafeGet i j m =
             v
 
         Nothing ->
-            Debug.crash ""
+            unsafeGet i j m
 
 
 (!!) : Matrix a -> ( Int, Int ) -> a
