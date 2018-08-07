@@ -12,6 +12,7 @@ install:
   - elm package install --yes
   - cd tests
   - elm package install --yes
+  - cd ..
 
 script:
-  - npm test
+  - elm-test
