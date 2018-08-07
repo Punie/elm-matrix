@@ -1,0 +1,17 @@
+sudo: false
+language: node_js
+node_js: "node"
+os: linux
+env: ELM_VERSION=0.18.0
+
+install:
+  - node --version
+  - npm --version
+  - npm install -g elm@$ELM_VERSION
+  - npm install -g elm-test
+  - elm package install --yes
+  - cd tests
+  - elm package install --yes
+
+script:
+  - npm test
