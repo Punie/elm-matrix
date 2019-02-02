@@ -1,24 +1,11 @@
-module Matrix
-    exposing
-        ( Matrix
-        , empty
-        , repeat
-        , initialize
-        , identity
-        , fromList
-        , fromLists
-        , height
-        , width
-        , size
-        , get
-        , map
-        , map2
-        , transpose
-        , dot
-        , toList
-        , toLists
-        , pretty
-        )
+module Matrix exposing
+    ( Matrix
+    , empty, repeat, initialize, identity, fromList, fromLists
+    , height, width, size
+    , get
+    , map, map2, transpose, dot
+    , toList, toLists, pretty
+    )
 
 {-| A simple linear algebra library using flat-arrays
 
@@ -54,7 +41,7 @@ module Matrix
 
 -}
 
-import Array.Hamt as Array exposing (Array)
+import Array exposing (Array)
 
 
 {-| Representation of a matrix. You can create matrices of any type
@@ -71,7 +58,7 @@ type Matrix a
 
 {-| Create an empty matrix.
 
-    size empty == (0, 0)
+    size empty == ( 0, 0 )
 
 -}
 empty : Matrix a
@@ -99,7 +86,16 @@ repeat nrows ncols value =
 
 {-| Createsa matrix with a given size, with the elements at index `(i, j)` initialized to the result of `f (i, j)`.
 
-    initialize 3 3 (\(i,j) -> if i == j then 1 else 0) == identity 3
+    initialize 3
+        3
+        (\( i, j ) ->
+            if i == j then
+                1
+
+            else
+                0
+        )
+        == identity 3
 
 -}
 initialize : Int -> Int -> (( Int, Int ) -> a) -> Matrix a
@@ -111,11 +107,11 @@ initialize nrows ncols f =
         data =
             Array.initialize (nrows * ncols) f_
     in
-        Matrix
-            { nrows = nrows
-            , ncols = ncols
-            , mvect = data
-            }
+    Matrix
+        { nrows = nrows
+        , ncols = ncols
+        , mvect = data
+        }
 
 
 {-| Create the identity matrix of dimension `n`.
@@ -126,10 +122,11 @@ identity n =
         f ( i, j ) =
             if i == j then
                 1
+
             else
                 0
     in
-        initialize n n f
+    initialize n n f
 
 
 {-| Return the number of rows in a given matrix.
@@ -156,21 +153,27 @@ size m =
 {-| Return `Just` the element at the index or `Nothing` if the index is out of bounds.
 -}
 get : Int -> Int -> Matrix a -> Maybe a
-get i j (Matrix { ncols, mvect }) =
-    Array.get (encode ncols ( i, j )) mvect
+get i j (Matrix { nrows, ncols, mvect }) =
+    if i > nrows || j > ncols then
+        Nothing
+
+    else
+        Array.get (encode ncols ( i, j )) mvect
 
 
 {-| Create a matrix from a list given the desired size.
 If the list has a length inferior to `n * m`, returns `Nothing`.
 
-    fromList 2 2 [1,1,1,1,1] == Just <| repeat 2 2 1
-    fromList 3 3 [0,1,2] == Nothing
+    fromList 2 2 [ 1, 1, 1, 1, 1 ] == Just <| repeat 2 2 1
+
+    fromList 3 3 [ 0, 1, 2 ] == Nothing
 
 -}
 fromList : Int -> Int -> List a -> Maybe (Matrix a)
 fromList n m list =
     if List.length list < n * m then
         Nothing
+
     else
         Just <| initialize n m (\i -> unsafeGetFromList (encode m i) list)
 
@@ -180,9 +183,12 @@ If any inner list is shorter than the first, returns `Nothing`.
 Otherwise, the length of the first list determines the width of the matrix.
 
     fromLists [] == Just empty
-    fromLists [[]] == Just empty
-    fromLists [ [1,2,3], [1,2] ] == Nothing
-    fromLists [ [1,0], [0, 1] ] == Just <| identity 2
+
+    fromLists [ [] ] == Just empty
+
+    fromLists [ [ 1, 2, 3 ], [ 1, 2 ] ] == Nothing
+
+    fromLists [ [ 1, 0 ], [ 0, 1 ] ] == Just <| identity 2
 
 -}
 fromLists : List (List a) -> Maybe (Matrix a)
@@ -199,17 +205,22 @@ fromLists list =
                 m =
                     List.length xs
             in
-                if m == 0 then
-                    Just empty
-                else
-                    fromList n m <| List.concat <| xs :: List.map (List.take m) xss
+            if m == 0 then
+                Just empty
+
+            else
+                fromList n m <| List.concat <| xs :: List.map (List.take m) xss
 
 
 {-| Apply a function on every element of a matrix
 -}
 map : (a -> b) -> Matrix a -> Matrix b
 map f (Matrix m) =
-    Matrix { m | mvect = Array.map f m.mvect }
+    Matrix
+        { nrows = m.nrows
+        , ncols = m.ncols
+        , mvect = Array.map f m.mvect
+        }
 
 
 {-| Apply a function between pairwise elements of two matrices.
@@ -220,7 +231,8 @@ map2 f m1 m2 =
     if size m1 == size m2 then
         Just <|
             initialize (height m1) (width m1) <|
-                \x -> f (m1 !! x) (m2 !! x)
+                \( i, j ) -> f (unsafeGet i j m1) (unsafeGet i j m2)
+
     else
         Nothing
 
@@ -229,7 +241,7 @@ map2 f m1 m2 =
 -}
 transpose : Matrix a -> Matrix a
 transpose m =
-    initialize (width m) (height m) <| \( i, j ) -> m !! ( j, i )
+    initialize (width m) (height m) <| \( i, j ) -> unsafeGet j i m
 
 
 {-| Perform the standard matrix multiplication.
@@ -244,15 +256,16 @@ dot m1 m2 =
         m =
             height m2
     in
-        if n == m then
-            Just <| multStd m1 m2
-        else
-            Nothing
+    if n == m then
+        Just <| multStd m1 m2
+
+    else
+        Nothing
 
 
 {-| Convert the matrix to a flat list.
 
-    toList (identity 3) == [1,0,0,0,1,0,0,0,1]
+    toList (identity 3) == [ 1, 0, 0, 0, 1, 0, 0, 0, 1 ]
 
 -}
 toList : Matrix a -> List a
@@ -271,7 +284,7 @@ toLists m =
         |> List.concatMap
             (\i ->
                 [ List.range 1 (width m)
-                    |> List.concatMap (\j -> [ m !! ( i, j ) ])
+                    |> List.concatMap (\j -> [ unsafeGet i j m ])
                 ]
             )
 
@@ -285,13 +298,13 @@ toLists m =
     """
 
 -}
-pretty : Matrix a -> String
-pretty m =
+pretty : (a -> String) -> Matrix a -> String
+pretty toString m =
     let
         list =
             toLists m
     in
-        "[ " ++ prettyPrint list ++ " ]"
+    "[ " ++ prettyPrint toString list ++ " ]"
 
 
 
@@ -310,15 +323,16 @@ decode ncols index =
             index // ncols
 
         r =
-            rem index ncols
+            remainderBy ncols index
     in
-        ( q + 1, r + 1 )
+    ( q + 1, r + 1 )
 
 
 itemAt : Int -> List a -> Maybe a
 itemAt index list =
     if index < 0 then
         Nothing
+
     else
         case list of
             [] ->
@@ -327,6 +341,7 @@ itemAt index list =
             x :: xs ->
                 if index == 0 then
                     Just x
+
                 else
                     itemAt (index - 1) xs
 
@@ -351,11 +366,6 @@ unsafeGet i j m =
             unsafeGet i j m
 
 
-(!!) : Matrix a -> ( Int, Int ) -> a
-(!!) m ( i, j ) =
-    unsafeGet i j m
-
-
 multStd : Matrix number -> Matrix number -> Matrix number
 multStd m1 m2 =
     let
@@ -366,26 +376,26 @@ multStd m1 m2 =
             size m2
 
         f ( i, j ) =
-            List.foldr (+) 0 <| List.map (\k -> (m1 !! ( i, k )) * (m2 !! ( k, j ))) (List.range 1 m)
+            List.foldr (+) 0 <| List.map (\k -> unsafeGet i k m1 * unsafeGet k j m2) (List.range 1 m)
     in
-        initialize n m_ f
+    initialize n m_ f
 
 
-prettyPrint : List (List a) -> String
-prettyPrint list =
+prettyPrint : (a -> String) -> List (List a) -> String
+prettyPrint toString list =
     case list of
         [] ->
             ""
 
         x :: [] ->
-            "[ " ++ prettyList x ++ " ]"
+            "[ " ++ prettyList toString x ++ " ]"
 
         x :: xs ->
-            "[ " ++ prettyList x ++ " ]\n, " ++ prettyPrint xs
+            "[ " ++ prettyList toString x ++ " ]\n, " ++ prettyPrint toString xs
 
 
-prettyList : List a -> String
-prettyList list =
+prettyList : (a -> String) -> List a -> String
+prettyList toString list =
     case list of
         [] ->
             ""
@@ -394,4 +404,4 @@ prettyList list =
             toString x
 
         x :: xs ->
-            toString x ++ ", " ++ prettyList xs
+            toString x ++ ", " ++ prettyList toString xs
