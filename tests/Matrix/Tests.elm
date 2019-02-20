@@ -1,4 +1,4 @@
-module Matrix.Tests exposing (dot, fromList, fromLists, identity, initialize, int, map, indexedMap, map2, matrix, repeat, size, toLists, transpose)
+module Matrix.Tests exposing (dot, fromList, fromLists, identity, indexedMap, initialize, int, map, map2, matrix, repeat, size, toLists, transpose)
 
 import Expect
 import Fuzz exposing (Fuzzer, custom, float, int, intRange, tuple, tuple3)

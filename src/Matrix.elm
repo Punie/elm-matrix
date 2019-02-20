@@ -242,6 +242,7 @@ map f (Matrix m) =
         , mvect = Array.map f m.mvect
         }
 
+
 {-| Same as map but the function is also applied to the index of each element
 -}
 indexedMap : (Int -> Int -> a -> b) -> Matrix a -> Matrix b
