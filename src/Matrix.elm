@@ -2,8 +2,8 @@ module Matrix exposing
     ( Matrix
     , empty, repeat, initialize, identity, fromList, fromLists
     , height, width, size
-    , get
-    , map, map2, transpose, dot
+    , get, set
+    , map, indexedMap, map2, transpose, dot
     , toList, toLists, pretty
     )
 
@@ -27,12 +27,12 @@ module Matrix exposing
 
 # Working with individual elements
 
-@docs get
+@docs get, set
 
 
 # Matrix manipulation
 
-@docs map, map2, transpose, dot
+@docs map, indexedMap, map2, transpose, dot
 
 
 # Matrix representation
@@ -161,6 +161,26 @@ get i j (Matrix { nrows, ncols, mvect }) =
         Array.get (encode ncols ( i, j )) mvect
 
 
+{-| Return original matrix if the index is out of bounds; or a new matrix with
+data in specific index updated
+-}
+set : Int -> Int -> a -> Matrix a -> Matrix a
+set i j value (Matrix { nrows, ncols, mvect }) =
+    if i > nrows || j > ncols then
+        Matrix
+            { nrows = nrows
+            , ncols = ncols
+            , mvect = mvect
+            }
+
+    else
+        Matrix
+            { nrows = nrows
+            , ncols = ncols
+            , mvect = Array.set (encode ncols ( i, j )) value mvect
+            }
+
+
 {-| Create a matrix from a list given the desired size.
 If the list has a length inferior to `n * m`, returns `Nothing`.
 
@@ -220,6 +240,24 @@ map f (Matrix m) =
         { nrows = m.nrows
         , ncols = m.ncols
         , mvect = Array.map f m.mvect
+        }
+
+{-| Same as map but the function is also applied to the index of each element
+-}
+indexedMap : (Int -> Int -> a -> b) -> Matrix a -> Matrix b
+indexedMap f (Matrix { nrows, ncols, mvect }) =
+    let
+        mapper index a =
+            let
+                ( i, j ) =
+                    decode ncols index
+            in
+            f i j a
+    in
+    Matrix
+        { nrows = nrows
+        , ncols = ncols
+        , mvect = Array.indexedMap mapper mvect
         }
 
 
